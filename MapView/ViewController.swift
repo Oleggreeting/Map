@@ -13,6 +13,7 @@ class MapViewController: UIViewController {
     
     let locationManager = CLLocationManager()
     var annotationsArray = [MKPointAnnotation]()
+    let search = UISearchBar(frame: .zero)
     
     let mapView: MKMapView = {
         $0.translatesAutoresizingMaskIntoConstraints = false
@@ -75,6 +76,8 @@ class MapViewController: UIViewController {
         constraints()
         setupButtons()
         visibilityOfButtons()
+        
+        navigationItem.titleView = search
     }
     
     
@@ -90,11 +93,6 @@ class MapViewController: UIViewController {
     @objc func findMyLocation(){
         buttonMyLocation.animation()
         showMyLocation()
-    }
-    
-    @objc func addPoint(){
-        buttonAdd.animation()
-        showAlert()
     }
     
     @objc func deleteWay(){
@@ -212,20 +210,7 @@ class MapViewController: UIViewController {
         }
     }
     
-    private func showAlert(){
-        let alert = UIAlertController(title: "Enter address!", message: nil, preferredStyle: .alert)
-        alert.addTextField()
-        let actionOk = UIAlertAction(title: "OK", style: .default) {_ in
-            if let text = alert.textFields?.first?.text {
-                self.createPlacemark(text: text)
-            }
-        }
-        let cancel = UIAlertAction(title: "Cancel", style: .default)
-        alert.addAction(cancel)
-        alert.addAction(actionOk)
-        present(alert, animated: true)
-    }
-    
+
     private func setupButtons(){
         buttonRepeat.addTarget(self, action: #selector(repeatPlacemarks), for: .touchUpInside)
         buttonMyLocation.addTarget(self, action: #selector(findMyLocation), for: .touchUpInside)
@@ -251,7 +236,6 @@ class MapViewController: UIViewController {
     
     private func constraints(){
         view.addSubview(mapView)
-        view.addSubview(buttonAdd)
         view.addSubview(buttonDelete)
         view.addSubview(buttonMyLocation)
         view.addSubview(buttonStart)
@@ -261,11 +245,6 @@ class MapViewController: UIViewController {
             mapView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             mapView.topAnchor.constraint(equalTo: view.topAnchor),
             mapView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            
-            buttonAdd.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
-            buttonAdd.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            buttonAdd.widthAnchor.constraint(equalToConstant: 80),
-            buttonAdd.heightAnchor.constraint(equalToConstant: 30),
             
             buttonDelete.widthAnchor.constraint(equalToConstant: 70),
             buttonDelete.heightAnchor.constraint(equalToConstant: 40),
