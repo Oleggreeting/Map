@@ -11,6 +11,7 @@ import CoreLocation
 
 class MapViewController: UIViewController {
     
+    let geocoder = CLGeocoder()
     let locationManager = CLLocationManager()
     var annotationsArray = [MKPointAnnotation]()
     let search = UISearchBar(frame: .zero)
@@ -76,8 +77,11 @@ class MapViewController: UIViewController {
         constraints()
         setupButtons()
         visibilityOfButtons()
+        addGesture()
         
         navigationItem.titleView = search
+        search.delegate = self
+        myLocation()
     }
     
     
@@ -92,11 +96,25 @@ class MapViewController: UIViewController {
     
     @objc func findMyLocation(){
         buttonMyLocation.animation()
-        showMyLocation()
+        myLocation()
     }
     
     @objc func deleteWay(){
         removePlacemarks()
+    }
+    
+    @objc func showPointOfTouch(_ gesture: UITapGestureRecognizer){
+        let point = gesture.location(in: mapView)
+        let coordinate = mapView.convert(point, toCoordinateFrom: mapView)
+        if annotationsArray.isEmpty{
+            createPoint(coordinate: coordinate)
+            showPoint(coordinate)
+        } else {
+            mapView.removeAnnotations(annotationsArray)
+            annotationsArray = []
+            mapView.showAnnotations(annotationsArray, animated: true)
+        }
+        
     }
     
     
@@ -110,7 +128,7 @@ class MapViewController: UIViewController {
         guard let currentLocation = locationManager.location else {return}
         if currentLocation.distance(from: startLocation) > 50 {
             loc = currentLocation.coordinate
-           repeatItems()
+            repeatItems()
         }
         let span = MKCoordinateSpan(latitudeDelta: 0.001, longitudeDelta: 0.001)
         let region = MKCoordinateRegion(center: loc, span: span)
@@ -148,12 +166,13 @@ class MapViewController: UIViewController {
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
         locationManager.requestWhenInUseAuthorization()
-
+        locationManager.startUpdatingLocation()
+    }
+    
+    private func createPoint(coordinate: CLLocationCoordinate2D) {
         let annotation = MKPointAnnotation()
-        guard let coordinate = locationManager.location?.coordinate else {return}
         annotation.coordinate = coordinate
         annotationsArray.append(annotation)
-
     }
     
     private func repeatItems(){
@@ -178,13 +197,23 @@ class MapViewController: UIViewController {
         mapView.showAnnotations(annotationsArray, animated: true)
     }
     
-    private func showMyLocation(){
-        guard let coordinate = locationManager.location?.coordinate else {return}
-            let region = MKCoordinateRegion(center: coordinate,
-                                            span: MKCoordinateSpan(latitudeDelta: 0.01,
-                                                                   longitudeDelta: 0.01))
-            mapView.setRegion(region, animated: true)
+    fileprivate func showPoint(_ coordinate: CLLocationCoordinate2D) {
+        let region = MKCoordinateRegion(center: coordinate,
+                                        span: MKCoordinateSpan(latitudeDelta: 0.01,
+                                                               longitudeDelta: 0.01))
+        mapView.setRegion(region, animated: true)
+        createPoint(coordinate: coordinate)
+        mapView.showAnnotations(annotationsArray, animated: true)
     }
+    
+    private func myLocation(){
+        //        guard let coordinate = locationManager.location?.coordinate else {return}
+        let coordinate = CLLocationCoordinate2D(latitude: 52.437042, longitude: 16.811160)
+        showPoint(coordinate)
+        
+    }
+    
+    
     
     private func addTitleForPlacemark(){
         if annotationsArray.count > 1 {
@@ -210,18 +239,16 @@ class MapViewController: UIViewController {
         }
     }
     
-
+    
     private func setupButtons(){
         buttonRepeat.addTarget(self, action: #selector(repeatPlacemarks), for: .touchUpInside)
         buttonMyLocation.addTarget(self, action: #selector(findMyLocation), for: .touchUpInside)
-        buttonAdd.addTarget(self, action: #selector(addPoint), for:.touchUpInside )
         buttonDelete.addTarget(self, action: #selector(deleteWay), for:.touchUpInside )
         buttonMyLocation.setImage(UIImage(named: "paperplane.circle"), for: .normal)
         buttonStart.addTarget(self, action: #selector(start), for: .touchUpInside)
     }
     
     private func createPlacemark(text: String){
-        let geocoder = CLGeocoder()
         geocoder.geocodeAddressString(text) {[self] request, error in
             if error != nil  {return}
             guard let location = request?.first?.location else {return}
@@ -233,6 +260,15 @@ class MapViewController: UIViewController {
             mapView.showAnnotations(annotationsArray, animated: true)
         }
     }
+    
+    private func addGesture(){
+        let tap = UITapGestureRecognizer(target: self, action: #selector(showPointOfTouch))
+        tap.numberOfTapsRequired = 1
+        tap.numberOfTouchesRequired = 1
+        mapView.addGestureRecognizer(tap)
+    }
+    
+    
     
     private func constraints(){
         view.addSubview(mapView)
@@ -269,13 +305,40 @@ class MapViewController: UIViewController {
     }
 }
 
+
+//MARK: - UISearchBarDelegate
+
+extension MapViewController: UISearchBarDelegate {
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        print(searchText, "1")
+    }
+    func searchBarShouldBeginEditing(_ searchBar: UISearchBar) -> Bool {
+        print("beginEditing")
+        return true
+    }
+    func searchBarShouldEndEditing(_ searchBar: UISearchBar) -> Bool {
+        print("EndEditing")
+        return false
+    }
+    func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
+        print("cancel")
+    }
+    func searchBarBookmarkButtonClicked(_ searchBar: UISearchBar) {
+        print("Bookmark")
+    }
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        print("searchButton")
+    }
+    
+}
 //MARK: - CLLocationManagerDelegate
 extension MapViewController: CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let coordinate = locations.first?.coordinate else {return}
-            annotationsArray.first?.coordinate = coordinate
+        annotationsArray.first?.coordinate = coordinate
+        print(coordinate)
         mapView.showAnnotations(annotationsArray, animated: true)
-        
+        self.locationManager.stopUpdatingLocation()
     }
     
 }
